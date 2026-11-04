@@ -1,0 +1,746 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Nexus Hub // Portal</title>
+  
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <!-- Font Awesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+  
+  <!-- Google Fonts: Syne & Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Syne:wght@700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+            display: ['Syne', 'sans-serif'],
+            mono: ['"JetBrains Mono"', 'monospace'],
+          },
+          colors: {
+            neon: {
+              cyan: '#00f3ff',
+              magenta: '#ff007f',
+              amber: '#ffb703',
+              purple: '#9d4edd',
+              emerald: '#10b981'
+            }
+          },
+          animation: {
+            'pulse-glow': 'pulseGlow 4s ease-in-out infinite alternate',
+            'float': 'float 6s ease-in-out infinite',
+            'shimmer': 'shimmer 2.5s infinite linear',
+          },
+          keyframes: {
+            pulseGlow: {
+              '0%': { opacity: '0.3', transform: 'scale(1)' },
+              '100%': { opacity: '0.6', transform: 'scale(1.08)' },
+            },
+            float: {
+              '0%, 100%': { transform: 'translateY(0px)' },
+              '50%': { transform: 'translateY(-8px)' },
+            },
+            shimmer: {
+              '0%': { backgroundPosition: '-200% 0' },
+              '100%': { backgroundPosition: '200% 0' },
+            }
+          }
+        }
+      }
+    };
+  </script>
+
+  <style>
+    /* Custom Glassmorphism & Cyberpunk accents */
+    body {
+      background-color: #06080e;
+      color: #e2e8f0;
+      overflow-x: hidden;
+      font-family: 'Inter', sans-serif;
+    }
+
+    .glass-card {
+      background: rgba(13, 17, 27, 0.65);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+      position: relative;
+    }
+
+    .glass-card::before {
+      content: '';
+      position: absolute;
+      inset: -1px;
+      border-radius: inherit;
+      padding: 1px;
+      background: linear-gradient(135deg, rgba(255, 255, 255, 0.15), rgba(255, 255, 255, 0.01), var(--card-glow, rgba(0, 243, 255, 0.4)));
+      -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+      mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+      -webkit-mask-composite: xor;
+      mask-composite: exclude;
+      pointer-events: none;
+      opacity: 0.5;
+      transition: opacity 0.35s ease;
+    }
+
+    .glass-card:hover::before {
+      opacity: 1;
+    }
+
+    .glass-card:hover {
+      transform: translateY(-6px) scale(1.015);
+      box-shadow: 0 20px 40px -15px var(--card-glow-shadow, rgba(0, 243, 255, 0.25));
+    }
+
+    .glow-blob {
+      filter: blur(90px);
+      border-radius: 9999px;
+      position: absolute;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* Grid overlay pattern */
+    .cyber-grid {
+      background-image: 
+        linear-gradient(to right, rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+      background-size: 40px 40px;
+      mask-image: radial-gradient(circle at center, black 40%, transparent 85%);
+      -webkit-mask-image: radial-gradient(circle at center, black 40%, transparent 85%);
+    }
+
+    /* Scrollbar */
+    ::-webkit-scrollbar {
+      width: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #07090e;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #1f2937;
+      border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #374151;
+    }
+  </style>
+</head>
+<body class="min-h-screen relative flex flex-col justify-between selection:bg-cyan-500 selection:text-black">
+
+  <!-- Interactive Background Canvas (Cyberpunk Particle Network) -->
+  <canvas id="bg-canvas" class="fixed inset-0 w-full h-full pointer-events-none z-0"></canvas>
+  <div class="fixed inset-0 cyber-grid pointer-events-none z-0"></div>
+
+  <!-- Ambient Color Gradients -->
+  <div class="glow-blob w-[450px] h-[450px] bg-cyan-600/20 -top-32 -left-20 animate-pulse-glow"></div>
+  <div class="glow-blob w-[500px] h-[500px] bg-purple-600/20 top-1/3 -right-32 animate-pulse-glow" style="animation-delay: 2s;"></div>
+  <div class="glow-blob w-[400px] h-[400px] bg-pink-600/15 -bottom-20 left-1/4 animate-pulse-glow" style="animation-delay: 3.5s;"></div>
+
+  <!-- Main Interface Content -->
+  <div class="relative z-10 flex-1 flex flex-col max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
+    
+    <!-- Top Navigation / Status Header -->
+    <header class="flex items-center justify-between border-b border-white/10 pb-6 mb-10">
+      <div class="flex items-center space-x-3">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-cyan-500 via-indigo-500 to-fuchsia-500 p-[1.5px] flex items-center justify-center shadow-lg shadow-cyan-500/20">
+          <div class="w-full h-full bg-slate-950 rounded-[10px] flex items-center justify-center">
+            <i class="fa-solid fa-atom text-cyan-400 text-lg animate-spin" style="animation-duration: 12s;"></i>
+          </div>
+        </div>
+        <div>
+          <span class="text-xs font-mono tracking-widest text-cyan-400 uppercase font-semibold block leading-tight">SYSTEM GATEWAY</span>
+          <h1 class="text-xl sm:text-2xl font-extrabold font-display tracking-tight text-white flex items-center gap-2">
+            NEXUS<span class="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-fuchsia-500">.PORTAL</span>
+          </h1>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-3">
+        <!-- Live Status Pill -->
+        <div class="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-mono">
+          <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
+          <span>SYSTEM ONLINE</span>
+        </div>
+
+        <!-- URL Mapper / Settings Button -->
+        <button id="config-btn" onclick="toggleConfigModal(true)" class="px-3.5 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-slate-300 hover:text-white transition flex items-center gap-2 text-xs font-mono">
+          <i class="fa-solid fa-sliders text-cyan-400"></i>
+          <span>Configure URLs</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- Hero / Headline Section -->
+    <div class="text-center max-w-3xl mx-auto mb-12 sm:mb-16">
+      <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/5 border border-white/10 text-slate-400 text-xs tracking-wider uppercase font-mono mb-4">
+        <i class="fa-solid fa-satellite-dish text-fuchsia-400"></i>
+        <span>Select Destination Node</span>
+      </div>
+      <h2 class="text-4xl sm:text-6xl font-extrabold font-display text-white tracking-tight leading-none mb-4">
+        ACCESS THE <span class="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-indigo-300 to-pink-500">NETWORK</span>
+      </h2>
+      <p class="text-slate-400 text-sm sm:text-base leading-relaxed max-w-xl mx-auto">
+        Choose your pathway below to connect instantly. All routes are monitored, encrypted, and ready for domain dispatch.
+      </p>
+    </div>
+
+    <!-- The 5 Primary Destinations (Grid Layout) -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 max-w-6xl mx-auto w-full">
+      
+      <!-- 1. G2KU (Get To Know Us) -->
+      <div 
+        onclick="handleNavigate('g2ku')" 
+        style="--card-glow: rgba(0, 243, 255, 0.4); --card-glow-shadow: rgba(0, 243, 255, 0.2);"
+        class="glass-card rounded-2xl p-6 sm:p-7 cursor-pointer group flex flex-col justify-between"
+      >
+        <div>
+          <div class="flex items-center justify-between mb-6">
+            <div class="w-14 h-14 rounded-2xl bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center text-cyan-400 group-hover:scale-110 group-hover:bg-cyan-500/20 group-hover:border-cyan-400 transition-all duration-300 shadow-lg shadow-cyan-500/10">
+              <i class="fa-solid fa-id-card-clip text-2xl"></i>
+            </div>
+            <span class="px-2.5 py-1 rounded-md bg-cyan-500/10 text-cyan-300 border border-cyan-500/20 font-mono text-[10px] tracking-wider font-semibold uppercase">NODE 01</span>
+          </div>
+
+          <h3 class="text-2xl font-display font-bold text-white mb-2 group-hover:text-cyan-300 transition-colors flex items-center gap-2">
+            G2KU
+            <i class="fa-solid fa-arrow-up-right-from-square text-xs opacity-0 group-hover:opacity-100 transition-all transform group-hover:translate-x-1 group-hover:-translate-y-1 text-cyan-400"></i>
+          </h3>
+          <p class="text-slate-400 text-xs sm:text-sm leading-relaxed mb-6">
+            Get To Know Us. Discover our mission, brand DNA, roadmap, and the team driving our universe forward.
+          </p>
+        </div>
+
+        <div class="pt-4 border-t border-white/5 flex items-center justify-between text-xs font-mono text-slate-400">
+          <span class="truncate max-w-[170px] text-cyan-400/80" id="url-label-g2ku">/about</span>
+          <span class="flex items-center gap-1 group-hover:text-white transition">Launch <i class="fa-solid fa-chevron-right text-[10px]"></i></span>
+        </div>
+      </div>
+
+      <!-- 2. WAL Guess -->
+      <div 
+        onclick="handleNavigate('wal_guess')" 
+        style="--card-glow: rgba(255, 0, 127, 0.4); --card-glow-shadow: rgba(255, 0, 127, 0.2);"
+        class="glass-card rounded-2xl p-6 sm:p-7 cursor-pointer group flex flex-col justify-between"
+      >
+        <div>
+          <div class="flex items-center justify-between mb-6">
+            <div class="w-14 h-14 rounded-2xl bg-pink-500/10 border border-pink-500/30 flex items-center justify-center text-pink-400 group-hover:scale-110 group-hover:bg-pink-500/20 group-hover:border-pink-400 transition-all duration-300 shadow-lg shadow-pink-500/10">
+              <i class="fa-solid fa-dice-d20 text-2xl"></i>
+            </div>
+            <span class="px-2.5 py-1 rounded-md bg-pink-500/10 text-pink-300 border border-pink-500/20 font-mono text-[10px] tracking-wider font-semibold uppercase">NODE 02</span>
+          </div>
+
+          <h3 class="text-2xl font-display font-bold text-white mb-2 group-hover:text-pink-300 transition-colors flex items-center gap-2">
+            WAL Guess
+            <i class="fa-solid fa-arrow-up-right-from-square text-xs opacity-0 group-hover:opacity-100 transition-all transform group-hover:translate-x-1 group-hover:-translate-y-1 text-pink-400"></i>
+          </h3>
+          <p class="text-slate-400 text-xs sm:text-sm leading-relaxed mb-6">
+            Engage in interactive prediction battles, trivia, and competitive challenges to test your instincts and leaderboard rank.
+          </p>
+        </div>
+
+        <div class="pt-4 border-t border-white/5 flex items-center justify-between text-xs font-mono text-slate-400">
+          <span class="truncate max-w-[170px] text-pink-400/80" id="url-label-wal_guess">/game</span>
+          <span class="flex items-center gap-1 group-hover:text-white transition">Play <i class="fa-solid fa-chevron-right text-[10px]"></i></span>
+        </div>
+      </div>
+
+      <!-- 3. Earn -->
+      <div 
+        onclick="handleNavigate('earn')" 
+        style="--card-glow: rgba(16, 185, 129, 0.4); --card-glow-shadow: rgba(16, 185, 129, 0.2);"
+        class="glass-card rounded-2xl p-6 sm:p-7 cursor-pointer group flex flex-col justify-between"
+      >
+        <div>
+          <div class="flex items-center justify-between mb-6">
+            <div class="w-14 h-14 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400 group-hover:scale-110 group-hover:bg-emerald-500/20 group-hover:border-emerald-400 transition-all duration-300 shadow-lg shadow-emerald-500/10">
+              <i class="fa-solid fa-coins text-2xl"></i>
+            </div>
+            <span class="px-2.5 py-1 rounded-md bg-emerald-500/10 text-emerald-300 border border-emerald-500/20 font-mono text-[10px] tracking-wider font-semibold uppercase">NODE 03</span>
+          </div>
+
+          <h3 class="text-2xl font-display font-bold text-white mb-2 group-hover:text-emerald-300 transition-colors flex items-center gap-2">
+            Earn
+            <i class="fa-solid fa-arrow-up-right-from-square text-xs opacity-0 group-hover:opacity-100 transition-all transform group-hover:translate-x-1 group-hover:-translate-y-1 text-emerald-400"></i>
+          </h3>
+          <p class="text-slate-400 text-xs sm:text-sm leading-relaxed mb-6">
+            Unlock bounty rewards, community incentives, staking pools, and exclusive affiliate tier bonuses.
+          </p>
+        </div>
+
+        <div class="pt-4 border-t border-white/5 flex items-center justify-between text-xs font-mono text-slate-400">
+          <span class="truncate max-w-[170px] text-emerald-400/80" id="url-label-earn">/rewards</span>
+          <span class="flex items-center gap-1 group-hover:text-white transition">Claim <i class="fa-solid fa-chevron-right text-[10px]"></i></span>
+        </div>
+      </div>
+
+      <!-- 4. Watch -->
+      <div 
+        onclick="handleNavigate('watch')" 
+        style="--card-glow: rgba(157, 78, 221, 0.4); --card-glow-shadow: rgba(157, 78, 221, 0.2);"
+        class="glass-card rounded-2xl p-6 sm:p-7 cursor-pointer group flex flex-col justify-between"
+      >
+        <div>
+          <div class="flex items-center justify-between mb-6">
+            <div class="w-14 h-14 rounded-2xl bg-purple-500/10 border border-purple-500/30 flex items-center justify-center text-purple-400 group-hover:scale-110 group-hover:bg-purple-500/20 group-hover:border-purple-400 transition-all duration-300 shadow-lg shadow-purple-500/10">
+              <i class="fa-solid fa-play text-2xl pl-1"></i>
+            </div>
+            <span class="px-2.5 py-1 rounded-md bg-purple-500/10 text-purple-300 border border-purple-500/20 font-mono text-[10px] tracking-wider font-semibold uppercase">NODE 04</span>
+          </div>
+
+          <h3 class="text-2xl font-display font-bold text-white mb-2 group-hover:text-purple-300 transition-colors flex items-center gap-2">
+            Watch
+            <i class="fa-solid fa-arrow-up-right-from-square text-xs opacity-0 group-hover:opacity-100 transition-all transform group-hover:translate-x-1 group-hover:-translate-y-1 text-purple-400"></i>
+          </h3>
+          <p class="text-slate-400 text-xs sm:text-sm leading-relaxed mb-6">
+            Livestreams, media drops, podcasts, video highlights, and real-time interactive broadcasts.
+          </p>
+        </div>
+
+        <div class="pt-4 border-t border-white/5 flex items-center justify-between text-xs font-mono text-slate-400">
+          <span class="truncate max-w-[170px] text-purple-400/80" id="url-label-watch">/streams</span>
+          <span class="flex items-center gap-1 group-hover:text-white transition">Stream <i class="fa-solid fa-chevron-right text-[10px]"></i></span>
+        </div>
+      </div>
+
+      <!-- 5. Shop -->
+      <div 
+        onclick="handleNavigate('shop')" 
+        style="--card-glow: rgba(255, 183, 3, 0.4); --card-glow-shadow: rgba(255, 183, 3, 0.2);"
+        class="glass-card rounded-2xl p-6 sm:p-7 cursor-pointer group flex flex-col justify-between sm:col-span-2 lg:col-span-1"
+      >
+        <div>
+          <div class="flex items-center justify-between mb-6">
+            <div class="w-14 h-14 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400 group-hover:scale-110 group-hover:bg-amber-500/20 group-hover:border-amber-400 transition-all duration-300 shadow-lg shadow-amber-500/10">
+              <i class="fa-solid fa-bag-shopping text-2xl"></i>
+            </div>
+            <span class="px-2.5 py-1 rounded-md bg-amber-500/10 text-amber-300 border border-amber-500/20 font-mono text-[10px] tracking-wider font-semibold uppercase">NODE 05</span>
+          </div>
+
+          <h3 class="text-2xl font-display font-bold text-white mb-2 group-hover:text-amber-300 transition-colors flex items-center gap-2">
+            Shop
+            <i class="fa-solid fa-arrow-up-right-from-square text-xs opacity-0 group-hover:opacity-100 transition-all transform group-hover:translate-x-1 group-hover:-translate-y-1 text-amber-400"></i>
+          </h3>
+          <p class="text-slate-400 text-xs sm:text-sm leading-relaxed mb-6">
+            Limited apparel, digital merchandise, collectibles, gear, and official member hardware.
+          </p>
+        </div>
+
+        <div class="pt-4 border-t border-white/5 flex items-center justify-between text-xs font-mono text-slate-400">
+          <span class="truncate max-w-[170px] text-amber-400/80" id="url-label-shop">/store</span>
+          <span class="flex items-center gap-1 group-hover:text-white transition">Browse <i class="fa-solid fa-chevron-right text-[10px]"></i></span>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Quick Dock / Domain Status Info -->
+    <div class="mt-14 max-w-xl mx-auto w-full glass-card rounded-xl p-4 flex flex-col sm:flex-row items-center justify-between gap-4 border border-white/5">
+      <div class="flex items-center gap-3">
+        <div class="w-2.5 h-2.5 rounded-full bg-cyan-400 animate-pulse"></div>
+        <span class="text-xs font-mono text-slate-300">
+          Domain Mapping: <span id="current-domain" class="text-white font-bold">domain.ready</span>
+        </span>
+      </div>
+      <button onclick="testRandomNode()" class="text-xs font-mono text-cyan-400 hover:text-cyan-300 flex items-center gap-1.5 transition">
+        <i class="fa-solid fa-shuffle text-[11px]"></i> Random Discovery
+      </button>
+    </div>
+
+  </div>
+
+  <!-- Footer -->
+  <footer class="relative z-10 border-t border-white/10 py-6 text-center text-xs font-mono text-slate-500">
+    <div class="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-4">
+      <div>&copy; <span id="year">2026</span> NEXUS PORTAL ENGINE. ALL RIGHTS RESERVED.</div>
+      <div class="flex items-center space-x-6 text-slate-400">
+        <a href="#config" onclick="toggleConfigModal(true)" class="hover:text-cyan-400 transition">Endpoint Config</a>
+        <span>•</span>
+        <span class="text-slate-600">v2.4.0</span>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Notification Toast -->
+  <div id="toast" class="fixed bottom-6 right-6 z-50 transform translate-y-20 opacity-0 transition-all duration-300 pointer-events-none">
+    <div class="glass-card px-4 py-3 rounded-xl shadow-2xl flex items-center gap-3 border border-cyan-500/40 text-slate-100 text-sm">
+      <i id="toast-icon" class="fa-solid fa-circle-check text-cyan-400 text-lg"></i>
+      <div>
+        <div id="toast-title" class="font-bold font-mono text-xs text-cyan-300">DISPATCHING</div>
+        <div id="toast-msg" class="text-xs text-slate-300">Target route loaded</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Configuration Modal (For setting custom URLs to your 5 options) -->
+  <div id="config-modal" class="fixed inset-0 z-50 hidden bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
+    <div class="glass-card max-w-lg w-full rounded-2xl p-6 sm:p-8 border border-white/15 relative">
+      <div class="flex items-center justify-between pb-4 border-b border-white/10 mb-5">
+        <div class="flex items-center gap-2">
+          <i class="fa-solid fa-sliders text-cyan-400"></i>
+          <h3 class="text-lg font-bold text-white font-display">Target URL Manager</h3>
+        </div>
+        <button onclick="toggleConfigModal(false)" class="text-slate-400 hover:text-white transition">
+          <i class="fa-solid fa-xmark text-lg"></i>
+        </button>
+      </div>
+
+      <p class="text-xs text-slate-400 mb-5 leading-relaxed">
+        Set the target external URLs, subdomains, or relative routes for each destination. Leaving blank or using '#' will trigger interactive demonstration previews.
+      </p>
+
+      <form id="url-config-form" class="space-y-4" onsubmit="saveConfig(event)">
+        <div>
+          <label class="block text-xs font-mono text-cyan-400 mb-1">G2KU Destination</label>
+          <input type="text" id="input-g2ku" placeholder="https://yourbrand.com/about or /g2ku" class="w-full bg-slate-900/90 border border-white/15 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-cyan-400 font-mono" />
+        </div>
+        <div>
+          <label class="block text-xs font-mono text-pink-400 mb-1">WAL Guess Destination</label>
+          <input type="text" id="input-wal_guess" placeholder="https://game.yourbrand.com or /wal-guess" class="w-full bg-slate-900/90 border border-white/15 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-pink-400 font-mono" />
+        </div>
+        <div>
+          <label class="block text-xs font-mono text-emerald-400 mb-1">Earn Destination</label>
+          <input type="text" id="input-earn" placeholder="https://rewards.yourbrand.com or /earn" class="w-full bg-slate-900/90 border border-white/15 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-emerald-400 font-mono" />
+        </div>
+        <div>
+          <label class="block text-xs font-mono text-purple-400 mb-1">Watch Destination</label>
+          <input type="text" id="input-watch" placeholder="https://watch.yourbrand.com or /watch" class="w-full bg-slate-900/90 border border-white/15 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-purple-400 font-mono" />
+        </div>
+        <div>
+          <label class="block text-xs font-mono text-amber-400 mb-1">Shop Destination</label>
+          <input type="text" id="input-shop" placeholder="https://shop.yourbrand.com or /shop" class="w-full bg-slate-900/90 border border-white/15 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-amber-400 font-mono" />
+        </div>
+
+        <div class="flex justify-end gap-3 pt-4 border-t border-white/10 mt-6">
+          <button type="button" onclick="toggleConfigModal(false)" class="px-4 py-2 rounded-lg bg-white/5 hover:bg-white/10 text-slate-300 text-xs font-mono transition">
+            Cancel
+          </button>
+          <button type="submit" class="px-5 py-2 rounded-lg bg-gradient-to-r from-cyan-500 to-indigo-600 hover:from-cyan-400 hover:to-indigo-500 text-white font-mono text-xs font-semibold shadow-lg shadow-cyan-500/20 transition">
+            Save Endpoints
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Dispatch Action Confirmation Dialog -->
+  <div id="dispatch-modal" class="fixed inset-0 z-50 hidden bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
+    <div class="glass-card max-w-md w-full rounded-2xl p-6 sm:p-7 border border-white/20 text-center relative">
+      <div id="dispatch-icon-box" class="w-16 h-16 mx-auto rounded-2xl flex items-center justify-center text-3xl mb-4">
+        <!-- Injected dynamically -->
+      </div>
+      <h3 id="dispatch-title" class="text-xl font-bold font-display text-white mb-2">Connecting...</h3>
+      <p id="dispatch-description" class="text-slate-400 text-xs leading-relaxed mb-6"></p>
+
+      <div class="p-3 bg-black/40 rounded-xl border border-white/10 text-left font-mono text-xs mb-6 overflow-hidden">
+        <span class="text-slate-500 block mb-1">Target Route:</span>
+        <div id="dispatch-url" class="text-cyan-400 truncate font-semibold">https://...</div>
+      </div>
+
+      <div class="flex gap-3">
+        <button onclick="closeDispatchModal()" class="flex-1 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-slate-300 text-xs font-mono transition">
+          Dismiss
+        </button>
+        <button id="dispatch-proceed-btn" onclick="proceedToDestination()" class="flex-1 py-2.5 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-xs font-mono shadow-lg shadow-cyan-500/20 transition">
+          Proceed &rarr;
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Application Logic -->
+  <script>
+    // Set dynamic current year & display hostname
+    document.getElementById('year').textContent = new Date().getFullYear();
+    document.getElementById('current-domain').textContent = window.location.hostname || "nexus-portal.io";
+
+    // Destination Metadata
+    const destinations = {
+      g2ku: {
+        name: "G2KU (Get To Know Us)",
+        defaultUrl: "#g2ku",
+        color: "#00f3ff",
+        icon: "fa-solid fa-id-card-clip",
+        desc: "Opening profile terminal: Overview, core values, origin story, and community manifesto."
+      },
+      wal_guess: {
+        name: "WAL Guess",
+        defaultUrl: "#wal-guess",
+        color: "#ff007f",
+        icon: "fa-solid fa-dice-d20",
+        desc: "Entering prediction zone: Interactive player wagering, leaderboards, and live guessing rounds."
+      },
+      earn: {
+        name: "Earn Hub",
+        defaultUrl: "#earn",
+        color: "#10b981",
+        icon: "fa-solid fa-coins",
+        desc: "Accessing treasury portal: Rewards distribution, staking, daily bounty tasks, and affiliate perks."
+      },
+      watch: {
+        name: "Watch Stream",
+        defaultUrl: "#watch",
+        color: "#9d4edd",
+        icon: "fa-solid fa-play",
+        desc: "Connecting high-definition feed: Broadcast channels, video archives, and interactive media."
+      },
+      shop: {
+        name: "Shop Portal",
+        defaultUrl: "#shop",
+        color: "#ffb703",
+        icon: "fa-solid fa-bag-shopping",
+        desc: "Opening digital storefront: Official merchandise drops, hardware tokens, and member apparel."
+      }
+    };
+
+    // Load URL mappings from localStorage or defaults
+    function getStoredUrls() {
+      const stored = localStorage.getItem('nexus_portal_urls');
+      if (stored) {
+        try {
+          return JSON.parse(stored);
+        } catch (e) {
+          console.error(e);
+        }
+      }
+      return {
+        g2ku: destinations.g2ku.defaultUrl,
+        wal_guess: destinations.wal_guess.defaultUrl,
+        earn: destinations.earn.defaultUrl,
+        watch: destinations.watch.defaultUrl,
+        shop: destinations.shop.defaultUrl
+      };
+    }
+
+    let currentUrls = getStoredUrls();
+    let pendingTarget = null;
+
+    // Update Card UI Labels
+    function refreshLabels() {
+      for (const [key, val] of Object.entries(currentUrls)) {
+        const el = document.getElementById(`url-label-${key}`);
+        if (el) {
+          el.textContent = val || destinations[key].defaultUrl;
+        }
+      }
+    }
+    refreshLabels();
+
+    // Subtle Web Audio API SFX Synth (No external audio file dependencies)
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    function playBeep(freq = 600, type = 'sine', duration = 0.08) {
+      if (!audioCtx) return;
+      try {
+        if (audioCtx.state === 'suspended') {
+          audioCtx.resume();
+        }
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = type;
+        osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+        gain.gain.setValueAtTime(0.05, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + duration);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start();
+        osc.stop(audioCtx.currentTime + duration);
+      } catch (err) {
+        // Audio policy ignore
+      }
+    }
+
+    // Navigation Handler
+    function handleNavigate(key) {
+      playBeep(750, 'triangle', 0.1);
+      const meta = destinations[key];
+      const targetUrl = currentUrls[key] || meta.defaultUrl;
+
+      // If user provided a real external URL (http/https/relative domain)
+      if (targetUrl && !targetUrl.startsWith('#')) {
+        showToast("REDIRECTING", `Launching node: ${meta.name}`);
+        setTimeout(() => {
+          window.location.href = targetUrl;
+        }, 500);
+        return;
+      }
+
+      // Demonstration / Placeholder modal when domain is pending connection
+      pendingTarget = targetUrl;
+      const modal = document.getElementById('dispatch-modal');
+      const iconBox = document.getElementById('dispatch-icon-box');
+      const title = document.getElementById('dispatch-title');
+      const desc = document.getElementById('dispatch-description');
+      const urlText = document.getElementById('dispatch-url');
+      const proceedBtn = document.getElementById('dispatch-proceed-btn');
+
+      iconBox.className = `w-16 h-16 mx-auto rounded-2xl flex items-center justify-center text-3xl mb-4 border`;
+      iconBox.style.backgroundColor = `${meta.color}15`;
+      iconBox.style.borderColor = `${meta.color}50`;
+      iconBox.style.color = meta.color;
+      iconBox.innerHTML = `<i class="${meta.icon}"></i>`;
+
+      title.textContent = meta.name;
+      desc.textContent = meta.desc;
+      urlText.textContent = targetUrl.startsWith('#') ? `${window.location.origin}${targetUrl}` : targetUrl;
+      urlText.style.color = meta.color;
+
+      proceedBtn.style.backgroundColor = meta.color;
+      proceedBtn.style.color = '#06080e';
+
+      modal.classList.remove('hidden');
+    }
+
+    function closeDispatchModal() {
+      playBeep(300, 'sine', 0.05);
+      document.getElementById('dispatch-modal').classList.add('hidden');
+    }
+
+    function proceedToDestination() {
+      playBeep(900, 'sine', 0.12);
+      closeDispatchModal();
+      showToast("GATEWAY DISPATCHED", "Link active. Configure actual target via Settings.");
+    }
+
+    // Modal Settings Controls
+    function toggleConfigModal(open) {
+      playBeep(open ? 600 : 400, 'sine', 0.06);
+      const modal = document.getElementById('config-modal');
+      if (open) {
+        document.getElementById('input-g2ku').value = currentUrls.g2ku || '';
+        document.getElementById('input-wal_guess').value = currentUrls.wal_guess || '';
+        document.getElementById('input-earn').value = currentUrls.earn || '';
+        document.getElementById('input-watch').value = currentUrls.watch || '';
+        document.getElementById('input-shop').value = currentUrls.shop || '';
+        modal.classList.remove('hidden');
+      } else {
+        modal.classList.add('hidden');
+      }
+    }
+
+    function saveConfig(e) {
+      e.preventDefault();
+      currentUrls = {
+        g2ku: document.getElementById('input-g2ku').value.trim() || destinations.g2ku.defaultUrl,
+        wal_guess: document.getElementById('input-wal_guess').value.trim() || destinations.wal_guess.defaultUrl,
+        earn: document.getElementById('input-earn').value.trim() || destinations.earn.defaultUrl,
+        watch: document.getElementById('input-watch').value.trim() || destinations.watch.defaultUrl,
+        shop: document.getElementById('input-shop').value.trim() || destinations.shop.defaultUrl,
+      };
+      localStorage.setItem('nexus_portal_urls', JSON.stringify(currentUrls));
+      refreshLabels();
+      toggleConfigModal(false);
+      showToast("CONFIG SAVED", "Custom destination routes updated successfully.");
+    }
+
+    // Random Node Trigger
+    function testRandomNode() {
+      const keys = Object.keys(destinations);
+      const randomKey = keys[Math.floor(Math.random() * keys.length)];
+      handleNavigate(randomKey);
+    }
+
+    // Toast Notification helper
+    let toastTimeout = null;
+    function showToast(title, message) {
+      const toast = document.getElementById('toast');
+      document.getElementById('toast-title').textContent = title;
+      document.getElementById('toast-msg').textContent = message;
+      
+      toast.classList.remove('translate-y-20', 'opacity-0');
+      toast.classList.add('translate-y-0', 'opacity-100');
+
+      if (toastTimeout) clearTimeout(toastTimeout);
+      toastTimeout = setTimeout(() => {
+        toast.classList.remove('translate-y-0', 'opacity-100');
+        toast.classList.add('translate-y-20', 'opacity-0');
+      }, 3500);
+    }
+
+    // Animated Cyberpunk Particle Network on HTML5 Canvas
+    const canvas = document.getElementById('bg-canvas');
+    const ctx = canvas.getContext('2d');
+    let particles = [];
+    let width, height;
+
+    function resizeCanvas() {
+      width = canvas.width = window.innerWidth;
+      height = canvas.height = window.innerHeight;
+      initParticles();
+    }
+
+    function initParticles() {
+      particles = [];
+      const count = Math.floor((width * height) / 22000); // density adaptive
+      for (let i = 0; i < count; i++) {
+        particles.push({
+          x: Math.random() * width,
+          y: Math.random() * height,
+          vx: (Math.random() - 0.5) * 0.4,
+          vy: (Math.random() - 0.5) * 0.4,
+          radius: Math.random() * 1.5 + 0.8,
+          color: Math.random() > 0.5 ? '#00f3ff' : '#9d4edd',
+          alpha: Math.random() * 0.4 + 0.2
+        });
+      }
+    }
+
+    function renderCanvas() {
+      ctx.clearRect(0, 0, width, height);
+
+      // Connect near points
+      for (let i = 0; i < particles.length; i++) {
+        const p1 = particles[i];
+        p1.x += p1.vx;
+        p1.y += p1.vy;
+
+        if (p1.x < 0) p1.x = width;
+        if (p1.x > width) p1.x = 0;
+        if (p1.y < 0) p1.y = height;
+        if (p1.y > height) p1.y = 0;
+
+        ctx.beginPath();
+        ctx.arc(p1.x, p1.y, p1.radius, 0, Math.PI * 2);
+        ctx.fillStyle = p1.color;
+        ctx.globalAlpha = p1.alpha;
+        ctx.fill();
+
+        for (let j = i + 1; j < particles.length; j++) {
+          const p2 = particles[j];
+          const dx = p1.x - p2.x;
+          const dy = p1.y - p2.y;
+          const dist = Math.sqrt(dx * dx + dy * dy);
+
+          if (dist < 110) {
+            ctx.beginPath();
+            ctx.moveTo(p1.x, p1.y);
+            ctx.lineTo(p2.x, p2.y);
+            ctx.strokeStyle = '#00f3ff';
+            ctx.globalAlpha = (1 - dist / 110) * 0.12;
+            ctx.lineWidth = 0.7;
+            ctx.stroke();
+          }
+        }
+      }
+      ctx.globalAlpha = 1.0;
+      requestAnimationFrame(renderCanvas);
+    }
+
+    window.addEventListener('resize', resizeCanvas);
+    window.addEventListener('DOMContentLoaded', () => {
+      resizeCanvas();
+      renderCanvas();
+    });
+  </script>
+</body>
+</html>
